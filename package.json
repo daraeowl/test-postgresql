@@ -4,9 +4,9 @@
   "description": "Game Items API with Convex Integration",
   "main": "index.js",
   "scripts": {
-    "dev": "convex dev",
-    "deploy": "convex deploy",
-    "start": "convex dev",
+    "dev": "echo 'Use dokploy deploy for production deployment'",
+    "deploy": "echo 'Use dokploy deploy for production deployment'",
+    "start": "echo 'Use dokploy deploy for production deployment'",
     "build": "echo 'Build handled by Docker'",
     "test": "echo 'No tests specified'",
     "lint": "echo 'No linting configured'"
