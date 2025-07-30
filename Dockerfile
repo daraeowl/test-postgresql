@@ -1,8 +1,10 @@
-# Multi-stage build for Convex backend
+# Convex Backend Dockerfile for Game Items API
+# Based on https://github.com/get-convex/convex-backend/tree/main/self-hosted/docker-build
+
 FROM ghcr.io/get-convex/convex-backend:5143fec81f146ca67495c12c6b7a15c5802c37e2
 
 # Set working directory
-WORKDIR /app
+WORKDIR /convex
 
 # Copy convex functions
 COPY convex/ ./convex/
@@ -11,7 +13,7 @@ COPY convex/ ./convex/
 COPY dokploy.yaml ./
 COPY convex.json ./
 
-# Expose ports
+# Expose ports for backend and HTTP actions
 EXPOSE 3210 3211
 
 # Set environment variables
