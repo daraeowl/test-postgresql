@@ -1,0 +1,41 @@
+{
+  "name": "game-items-api",
+  "version": "1.0.0",
+  "description": "Game Items API with Convex Integration",
+  "main": "index.js",
+  "scripts": {
+    "dev": "convex dev",
+    "deploy": "convex deploy",
+    "start": "convex dev",
+    "build": "echo 'Build handled by Docker'",
+    "test": "echo 'No tests specified'",
+    "lint": "echo 'No linting configured'"
+  },
+  "keywords": [
+    "convex",
+    "api",
+    "game-items",
+    "backend",
+    "real-time"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "dependencies": {
+    "convex": "^1.10.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/game-items-api.git"
+  },
+  "bugs": {
+    "url": "https://github.com/yourusername/game-items-api/issues"
+  },
+  "homepage": "https://github.com/yourusername/game-items-api#readme"
+} 
