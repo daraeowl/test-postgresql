@@ -1,6 +1,6 @@
 # Game Items API - Convex Backend
 
-This project provides a Convex backend integration for the [Ashes Codex API](https://api.ashescodex.com/items) with caching, filtering, and real-time capabilities.
+This project provides a Convex backend integration for the (https://api.ashescodex.com/items) with caching, filtering, and real-time capabilities.
 
 ## Features
 
