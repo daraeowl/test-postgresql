@@ -1,6 +1,6 @@
 # Game Items API - Convex Backend
 
-This project provides a Convex backend integration for the (https://api.ashescodex.com/items) with caching, filtering, and real-time capabilities.
+This project provides a Convex backend integration for the [Ashes Codex API](https://api.ashescodex.com/items) with caching, filtering, and real-time capabilities.
 
 ## Features
 
@@ -12,22 +12,6 @@ This project provides a Convex backend integration for the (https://api.ashescod
 - **Performance Optimized**: Indexed queries for fast data retrieval
 - **Dokploy Deployment**: Ready for production deployment with environment configuration
 
-## API Parameters Supported
-
-All query parameters from the original API are supported:
-- `category` - Item category classification
-- `coreStats` - Core statistics for the item
-- `itemType` - Type of item (weapon, armor, consumable, etc.)
-- `learnable` - Whether the item can be learned/taught
-- `minLevel` - Minimum level requirement
-- `page` - Pagination parameter
-- `per_page` - Items per page
-- `primaryStats` - Primary statistics
-- `profession` - Profession requirement
-- `stats` - General statistics
-- `subCategory` - Sub-category classification
-- `subType` - Sub-type classification
-
 ## Quick Start
 
 ### Prerequisites
@@ -35,7 +19,8 @@ All query parameters from the original API are supported:
 - Convex CLI installed: `npm install -g convex`
 - Dokploy account and CLI (for deployment)
 
-### Local Development
+### Installation
+
 1. **Clone the repository**:
    ```bash
    git clone <your-repo-url>
@@ -55,11 +40,29 @@ All query parameters from the original API are supported:
 
 4. **Start Convex development server**:
    ```bash
+   npm run dev
+   # or
    npx convex dev
    ```
 
 ### Deployment to Dokploy
 See [DEPLOYMENT.md](./DEPLOYMENT.md) for detailed deployment instructions.
+
+## API Parameters Supported
+
+All query parameters from the original API are supported:
+- `category` - Item category classification
+- `coreStats` - Core statistics for the item
+- `itemType` - Type of item (weapon, armor, consumable, etc.)
+- `learnable` - Whether the item can be learned/taught
+- `minLevel` - Minimum level requirement
+- `page` - Pagination parameter
+- `per_page` - Items per page
+- `primaryStats` - Primary statistics
+- `profession` - Profession requirement
+- `stats` - General statistics
+- `subCategory` - Sub-category classification
+- `subType` - Sub-type classification
 
 ## Database Schema
 
@@ -255,7 +258,7 @@ The system includes comprehensive error handling:
 ### Local Development
 ```bash
 # Start Convex dev server
-npx convex dev
+npm run dev
 
 # Test functions in the dashboard
 # Navigate to http://localhost:8000
@@ -313,7 +316,7 @@ nano env
 
 ### Local Development
 ```bash
-npx convex dev
+npm run dev
 ```
 
 ### Dokploy Deployment
@@ -341,10 +344,6 @@ For detailed deployment instructions, see [DEPLOYMENT.md](./DEPLOYMENT.md).
 2. Add proper error handling for new functions
 3. Update indexes when adding new query patterns
 4. Test API integration thoroughly
-
-## 📋 Project Status
-
-For detailed progress tracking, configuration steps, and troubleshooting solutions, see [CURRENT_PROGRESS.md](./CURRENT_PROGRESS.md).
 
 ## License
 
