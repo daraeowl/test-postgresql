@@ -12,10 +12,6 @@ COPY convex/ ./convex/
 # Copy configuration files
 COPY convex.json ./
 
-# Copy startup script
-COPY start.sh ./start.sh
-RUN chmod +x ./start.sh
-
 # Create data directory
 RUN mkdir -p /convex/data
 
@@ -33,5 +29,4 @@ ENV ACTIONS_USER_TIMEOUT_SECS=300
 HEALTHCHECK --interval=5s --start-period=5s --timeout=3s --retries=3 \
   CMD curl -f http://localhost:3210/version || exit 1
 
-# Start the Convex backend with proper initialization
-CMD ["./start.sh"] 
+# Use the base image's default command 
