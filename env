@@ -1,0 +1,3 @@
+NEXT_PUBLIC_DEPLOYMENT_URL=http://guildmanager-prod-convex-559c44-148-113-206-108.traefik.me:3210
+CONVEX_CLOUD_ORIGIN=http://guildmanager-prod-convex-559c44-148-113-206-108.traefik.me:3210
+CONVEX_SITE_ORIGIN=http://guildmanager-prod-convex-07d3f6-148-113-206-108.traefik.me:6791

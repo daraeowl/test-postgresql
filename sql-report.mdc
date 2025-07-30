@@ -1,0 +1,295 @@
+# Designing queries and relationships for game items API
+
+## API Structure Analysis
+
+Based on the API endpoint `https://api.ashescodex.com/items` with the following query parameters:
+- `category` - Item category classification
+- `coreStats` - Core statistics for the item
+- `itemType` - Type of item (weapon, armor, consumable, etc.)
+- `learnable` - Whether the item can be learned/taught
+- `minLevel` - Minimum level requirement
+- `page` - Pagination parameter
+- `per_page` - Items per page
+- `primaryStats` - Primary statistics
+- `profession` - Profession requirement
+- `stats` - General statistics
+- `subCategory` - Sub-category classification
+- `subType` - Sub-type classification
+
+## Normalized Database Design
+
+### Core Tables Structure
+
+#### 1. `items` (Main Items Table)
+```sql
+CREATE TABLE items (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+    item_type VARCHAR(50) NOT NULL,
+    category VARCHAR(100),
+    sub_category VARCHAR(100),
+    sub_type VARCHAR(100),
+    min_level INTEGER DEFAULT 1,
+    learnable BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Indexes for efficient querying
+CREATE INDEX idx_items_item_type ON items(item_type);
+CREATE INDEX idx_items_category ON items(category);
+CREATE INDEX idx_items_sub_category ON items(sub_category);
+CREATE INDEX idx_items_min_level ON items(min_level);
+CREATE INDEX idx_items_learnable ON items(learnable);
+```
+
+#### 2. `item_stats` (Statistics Table)
+```sql
+CREATE TABLE item_stats (
+    id SERIAL PRIMARY KEY,
+    item_id INTEGER NOT NULL REFERENCES items(id) ON DELETE CASCADE,
+    stat_name VARCHAR(100) NOT NULL,
+    stat_value DECIMAL(10,2) NOT NULL,
+    stat_type VARCHAR(50) DEFAULT 'general', -- 'core', 'primary', 'general'
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    
+    UNIQUE(item_id, stat_name, stat_type)
+);
+
+-- Indexes
+CREATE INDEX idx_item_stats_item_id ON item_stats(item_id);
+CREATE INDEX idx_item_stats_stat_type ON item_stats(stat_type);
+CREATE INDEX idx_item_stats_stat_name ON item_stats(stat_name);
+```
+
+#### 3. `item_professions` (Profession Requirements)
+```sql
+CREATE TABLE item_professions (
+    id SERIAL PRIMARY KEY,
+    item_id INTEGER NOT NULL REFERENCES items(id) ON DELETE CASCADE,
+    profession_name VARCHAR(100) NOT NULL,
+    profession_level INTEGER DEFAULT 1,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    
+    UNIQUE(item_id, profession_name)
+);
+
+-- Indexes
+CREATE INDEX idx_item_professions_item_id ON item_professions(item_id);
+CREATE INDEX idx_item_professions_profession ON item_professions(profession_name);
+```
+
+#### 4. `categories` (Reference Table for Categories)
+```sql
+CREATE TABLE categories (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(100) UNIQUE NOT NULL,
+    parent_id INTEGER REFERENCES categories(id),
+    description TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Indexes
+CREATE INDEX idx_categories_parent_id ON categories(parent_id);
+```
+
+#### 5. `item_types` (Reference Table for Item Types)
+```sql
+CREATE TABLE item_types (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(50) UNIQUE NOT NULL,
+    description TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+## Query Patterns for API Endpoints
+
+### Basic Item Query with Pagination
+```sql
+SELECT 
+    i.id,
+    i.name,
+    i.description,
+    i.item_type,
+    i.category,
+    i.sub_category,
+    i.sub_type,
+    i.min_level,
+    i.learnable
+FROM items i
+WHERE 1=1
+    AND (?::VARCHAR IS NULL OR i.category = ?)
+    AND (?::VARCHAR IS NULL OR i.item_type = ?)
+    AND (?::BOOLEAN IS NULL OR i.learnable = ?)
+    AND (?::INTEGER IS NULL OR i.min_level >= ?)
+    AND (?::VARCHAR IS NULL OR i.sub_category = ?)
+    AND (?::VARCHAR IS NULL OR i.sub_type = ?)
+ORDER BY i.id
+LIMIT ? OFFSET ?;
+```
+
+### Items with Statistics
+```sql
+SELECT 
+    i.id,
+    i.name,
+    i.description,
+    i.item_type,
+    i.category,
+    i.sub_category,
+    i.sub_type,
+    i.min_level,
+    i.learnable,
+    json_agg(
+        json_build_object(
+            'name', s.stat_name,
+            'value', s.stat_value,
+            'type', s.stat_type
+        )
+    ) as stats
+FROM items i
+LEFT JOIN item_stats s ON i.id = s.item_id
+WHERE 1=1
+    AND (?::VARCHAR IS NULL OR i.category = ?)
+    AND (?::VARCHAR IS NULL OR i.item_type = ?)
+    AND (?::BOOLEAN IS NULL OR i.learnable = ?)
+    AND (?::INTEGER IS NULL OR i.min_level >= ?)
+GROUP BY i.id, i.name, i.description, i.item_type, i.category, i.sub_category, i.sub_type, i.min_level, i.learnable
+ORDER BY i.id
+LIMIT ? OFFSET ?;
+```
+
+### Items with Core Stats Filter
+```sql
+SELECT DISTINCT
+    i.id,
+    i.name,
+    i.description,
+    i.item_type,
+    i.category,
+    i.sub_category,
+    i.sub_type,
+    i.min_level,
+    i.learnable
+FROM items i
+INNER JOIN item_stats s ON i.id = s.item_id
+WHERE s.stat_type = 'core'
+    AND (?::VARCHAR IS NULL OR s.stat_name = ?)
+    AND (?::DECIMAL IS NULL OR s.stat_value >= ?)
+    AND (?::VARCHAR IS NULL OR i.category = ?)
+    AND (?::VARCHAR IS NULL OR i.item_type = ?)
+ORDER BY i.id
+LIMIT ? OFFSET ?;
+```
+
+### Items with Profession Requirements
+```sql
+SELECT 
+    i.id,
+    i.name,
+    i.description,
+    i.item_type,
+    i.category,
+    i.sub_category,
+    i.sub_type,
+    i.min_level,
+    i.learnable,
+    json_agg(
+        json_build_object(
+            'profession', p.profession_name,
+            'level', p.profession_level
+        )
+    ) as professions
+FROM items i
+LEFT JOIN item_professions p ON i.id = p.item_id
+WHERE 1=1
+    AND (?::VARCHAR IS NULL OR p.profession_name = ?)
+    AND (?::INTEGER IS NULL OR p.profession_level <= ?)
+    AND (?::VARCHAR IS NULL OR i.category = ?)
+    AND (?::VARCHAR IS NULL OR i.item_type = ?)
+GROUP BY i.id, i.name, i.description, i.item_type, i.category, i.sub_category, i.sub_type, i.min_level, i.learnable
+ORDER BY i.id
+LIMIT ? OFFSET ?;
+```
+
+## Performance Optimization
+
+### Composite Indexes for Common Query Patterns
+```sql
+-- For category + item_type queries
+CREATE INDEX idx_items_category_item_type ON items(category, item_type);
+
+-- For level-based filtering
+CREATE INDEX idx_items_min_level_item_type ON items(min_level, item_type);
+
+-- For learnable items
+CREATE INDEX idx_items_learnable_category ON items(learnable, category);
+
+-- For stats queries
+CREATE INDEX idx_item_stats_item_stat_type ON item_stats(item_id, stat_type);
+CREATE INDEX idx_item_stats_stat_name_type ON item_stats(stat_name, stat_type);
+```
+
+### Materialized Views for Complex Queries
+```sql
+-- Materialized view for items with aggregated stats
+CREATE MATERIALIZED VIEW items_with_stats AS
+SELECT 
+    i.id,
+    i.name,
+    i.description,
+    i.item_type,
+    i.category,
+    i.sub_category,
+    i.sub_type,
+    i.min_level,
+    i.learnable,
+    json_agg(
+        json_build_object(
+            'name', s.stat_name,
+            'value', s.stat_value,
+            'type', s.stat_type
+        )
+    ) as stats
+FROM items i
+LEFT JOIN item_stats s ON i.id = s.item_id
+GROUP BY i.id, i.name, i.description, i.item_type, i.category, i.sub_category, i.sub_type, i.min_level, i.learnable;
+
+CREATE INDEX idx_items_with_stats_category ON items_with_stats(category);
+CREATE INDEX idx_items_with_stats_item_type ON items_with_stats(item_type);
+CREATE INDEX idx_items_with_stats_min_level ON items_with_stats(min_level);
+```
+
+## Data Insertion Examples
+
+### Inserting a New Item
+```sql
+-- Insert base item
+INSERT INTO items (name, description, item_type, category, sub_category, sub_type, min_level, learnable)
+VALUES ('Sword of Power', 'A mighty sword', 'weapon', 'combat', 'sword', 'magical', 10, false)
+RETURNING id;
+
+-- Insert stats
+INSERT INTO item_stats (item_id, stat_name, stat_value, stat_type) VALUES
+(1, 'attack_power', 150.0, 'core'),
+(1, 'durability', 100.0, 'core'),
+(1, 'magic_resistance', 25.0, 'primary');
+
+-- Insert profession requirements
+INSERT INTO item_professions (item_id, profession_name, profession_level) VALUES
+(1, 'warrior', 5),
+(1, 'paladin', 3);
+```
+
+## Conclusion
+
+This normalized design provides:
+- **Flexibility**: Easy to add new stats, categories, or item types
+- **Performance**: Proper indexing for all query parameters
+- **Scalability**: Separate tables prevent data duplication
+- **Maintainability**: Clear separation of concerns
+- **API Compatibility**: Direct mapping to all query parameters
+
+The design supports all API query parameters efficiently while maintaining data integrity and providing room for future expansion.

@@ -1,0 +1,16 @@
+{
+  "project": "game-items-api",
+  "team": "self-hosted",
+  "prodUrl": "http://127.0.0.1:3210",
+  "functions": {
+    "config": {
+      "maxDuration": 300
+    }
+  },
+  "authInfo": [
+    {
+      "domain": "127.0.0.1:3210",
+      "applicationID": "self-hosted-convex"
+    }
+  ]
+} 
