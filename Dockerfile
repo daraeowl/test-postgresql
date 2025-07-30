@@ -10,13 +10,19 @@ WORKDIR /convex
 COPY convex/ ./convex/
 
 # Copy configuration files
-COPY dokploy.yaml ./
 COPY convex.json ./
+
+# Copy startup script
+COPY start.sh ./start.sh
+RUN chmod +x ./start.sh
+
+# Create data directory
+RUN mkdir -p /convex/data
 
 # Expose ports for backend and HTTP actions
 EXPOSE 3210 3211
 
-# Set environment variables
+# Set default environment variables
 ENV INSTANCE_NAME=game-items-api
 ENV RUST_LOG=info
 ENV DISABLE_BEACON=true
@@ -27,5 +33,5 @@ ENV ACTIONS_USER_TIMEOUT_SECS=300
 HEALTHCHECK --interval=5s --start-period=5s --timeout=3s --retries=3 \
   CMD curl -f http://localhost:3210/version || exit 1
 
-# Start the Convex backend
-CMD ["convex-backend"] 
+# Start the Convex backend with proper initialization
+CMD ["./start.sh"] 

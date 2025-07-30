@@ -3,10 +3,14 @@ description: Game Items API with Convex Integration
 
 services:
   convex-backend:
-    image: ghcr.io/get-convex/convex-backend:5143fec81f146ca67495c12c6b7a15c5802c37e2
+    build:
+      context: .
+      dockerfile: Dockerfile
     ports:
       - "3210:3210"
       - "3211:3211"
+    volumes:
+      - convex-data:/convex/data
     environment:
       - INSTANCE_NAME=game-items-api
       - INSTANCE_SECRET=${INSTANCE_SECRET}
@@ -16,8 +20,6 @@ services:
       - DISABLE_BEACON=true
       - REDACT_LOGS_TO_CLIENT=false
       - ACTIONS_USER_TIMEOUT_SECS=300
-    volumes:
-      - convex-data:/convex/data
     healthcheck:
       test: curl -f http://localhost:3210/version
       interval: 5s
