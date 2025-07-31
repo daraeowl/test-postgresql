@@ -1,41 +1,24 @@
 {
   "name": "game-items-api",
   "version": "1.0.0",
-  "description": "Game Items API with Convex Integration",
+  "description": "Game Items API with Convex backend",
   "main": "index.js",
   "scripts": {
-    "dev": "echo 'Use dokploy deploy for production deployment'",
-    "deploy": "echo 'Use dokploy deploy for production deployment'",
-    "start": "echo 'Use dokploy deploy for production deployment'",
-    "build": "echo 'Build handled by Docker'",
+    "dev": "CONVEX_SELF_HOSTED_URL=http://192.168.3.10:3210 convex dev",
+    "deploy": "CONVEX_SELF_HOSTED_URL=http://192.168.3.10:3210 CONVEX_SELF_HOSTED_ADMIN_KEY=\"game-items-api|01a20981982d36189407f10b53b63cbe5e52cb90eb9d32c94fd920b1852e679449eb07a58d0ec96353342b142d4cd00b35\" convex deploy",
+    "start": "CONVEX_SELF_HOSTED_URL=http://192.168.3.10:3210 convex start",
+    "build": "echo 'Build not needed for Convex backend'",
     "test": "echo 'No tests specified'",
     "lint": "echo 'No linting configured'"
   },
-  "keywords": [
-    "convex",
-    "api",
-    "game-items",
-    "backend",
-    "real-time"
-  ],
-  "author": "Your Name",
-  "license": "MIT",
+  "keywords": ["convex", "api", "game-items"],
+  "author": "",
+  "license": "ISC",
   "dependencies": {
     "convex": "^1.10.0"
   },
   "devDependencies": {
-    "@types/node": "^20.0.0",
-    "typescript": "^5.0.0"
-  },
-  "engines": {
-    "node": ">=18.0.0"
-  },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/yourusername/game-items-api.git"
-  },
-  "bugs": {
-    "url": "https://github.com/yourusername/game-items-api/issues"
-  },
-  "homepage": "https://github.com/yourusername/game-items-api#readme"
+    "typescript": "^5.0.0",
+    "@types/node": "^20.0.0"
+  }
 } 

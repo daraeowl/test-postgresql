@@ -133,7 +133,7 @@ dokploy logs convex-dashboard
 
 ### Health Checks
 The services include health checks:
-- Convex backend: `curl -f http://localhost:3210/version`
+- Convex backend: `curl -f https://convex-dev.jrrojas.dev/version`
 
 ## 🛠️ Troubleshooting
 

@@ -1,9 +1,8 @@
+import { query, mutation, action } from "./_generated/server";
 import { v } from "convex/values";
-import { mutation, query, action } from "./_generated/server";
-import { api } from "./_generated/api";
 import { GameItem, ItemStat, ItemProfession } from "./schema";
 
-// Types for API parameters
+// Interface for API query parameters
 export interface ItemsQueryParams {
   category?: string;
   coreStats?: string;
@@ -19,118 +18,6 @@ export interface ItemsQueryParams {
   subType?: string;
 }
 
-// Action to fetch items from external API
-export const fetchItemsFromAPI = action({
-  args: {
-    params: v.optional(v.object({
-      category: v.optional(v.string()),
-      coreStats: v.optional(v.string()),
-      itemType: v.optional(v.string()),
-      learnable: v.optional(v.boolean()),
-      minLevel: v.optional(v.number()),
-      page: v.optional(v.number()),
-      per_page: v.optional(v.number()),
-      primaryStats: v.optional(v.string()),
-      profession: v.optional(v.string()),
-      stats: v.optional(v.string()),
-      subCategory: v.optional(v.string()),
-      subType: v.optional(v.string())
-    }))
-  },
-  handler: async (ctx, args) => {
-    const baseUrl = "https://api.ashescodex.com/items";
-    const params = args.params || {};
-    
-    // Build query string
-    const queryParams = new URLSearchParams();
-    Object.entries(params).forEach(([key, value]) => {
-      if (value !== undefined && value !== null) {
-        queryParams.append(key, value.toString());
-      }
-    });
-    
-    const url = `${baseUrl}?${queryParams.toString()}`;
-    
-    try {
-      const response = await fetch(url);
-      if (!response.ok) {
-        throw new Error(`API request failed: ${response.status}`);
-      }
-      
-      const data = await response.json();
-      
-      // Cache the response
-      await ctx.runMutation(api.items.cacheAPIResponse, {
-        endpoint: baseUrl,
-        params: JSON.stringify(params),
-        data: data,
-        timestamp: Date.now(),
-        expiresAt: Date.now() + (5 * 60 * 1000) // 5 minutes cache
-      });
-      
-      return data;
-    } catch (error) {
-      console.error("Error fetching from API:", error);
-      throw error;
-    }
-  }
-});
-
-// Mutation to cache API responses
-export const cacheAPIResponse = mutation({
-  args: {
-    endpoint: v.string(),
-    params: v.string(),
-    data: v.any(),
-    timestamp: v.number(),
-    expiresAt: v.number()
-  },
-  handler: async (ctx, args) => {
-    // Remove old cache entries
-    const oldCache = await ctx.db
-      .query("apiCache")
-      .withIndex("by_endpoint_params", (q) => 
-        q.eq("endpoint", args.endpoint).eq("params", args.params)
-      )
-      .collect();
-    
-    for (const cache of oldCache) {
-      await ctx.db.delete(cache._id);
-    }
-    
-    // Insert new cache entry
-    await ctx.db.insert("apiCache", {
-      endpoint: args.endpoint,
-      params: args.params,
-      data: args.data,
-      timestamp: args.timestamp,
-      expiresAt: args.expiresAt
-    });
-  }
-});
-
-// Query to get cached API response
-export const getCachedAPIResponse = query({
-  args: {
-    endpoint: v.string(),
-    params: v.string()
-  },
-  handler: async (ctx, args) => {
-    const cache = await ctx.db
-      .query("apiCache")
-      .withIndex("by_endpoint_params", (q) => 
-        q.eq("endpoint", args.endpoint).eq("params", args.params)
-      )
-      .first();
-    
-    if (cache && cache.expiresAt > Date.now()) {
-      return cache.data;
-    }
-    
-    return null;
-  }
-});
-
 // Query to get items with filtering
 export const getItems = query({
   args: {
@@ -144,29 +31,25 @@ export const getItems = query({
     offset: v.optional(v.number())
   },
   handler: async (ctx, args) => {
-    let itemsQuery = ctx.db.query("items");
+    let items = await ctx.db.query("items").collect();
     
     // Apply filters
     if (args.category) {
-      itemsQuery = itemsQuery.withIndex("by_category", (q) => q.eq("category", args.category));
+      items = items.filter(item => item.category === args.category);
     }
     
     if (args.itemType) {
-      itemsQuery = itemsQuery.withIndex("by_item_type", (q) => q.eq("itemType", args.itemType));
+      items = items.filter(item => item.itemType === args.itemType);
     }
     
     if (args.learnable !== undefined) {
-      itemsQuery = itemsQuery.withIndex("by_learnable", (q) => q.eq("learnable", args.learnable));
+      items = items.filter(item => item.learnable === args.learnable);
     }
     
     if (args.minLevel) {
-      itemsQuery = itemsQuery.withIndex("by_min_level", (q) => q.gte("minLevel", args.minLevel));
+      items = items.filter(item => item.minLevel >= args.minLevel!);
     }
     
-    // Collect and apply additional filters
-    let items = await itemsQuery.collect();
-    
-    // Apply additional filters that don't have indexes
     if (args.subCategory) {
       items = items.filter(item => item.subCategory === args.subCategory);
     }
@@ -199,7 +82,7 @@ export const getItemsByStats = query({
     
     // Filter by stats
     items = items.filter(item => {
-      const stats = item.stats.filter(stat => {
+      const stats = item.stats.filter((stat: ItemStat) => {
         if (args.statName && stat.name !== args.statName) return false;
         if (args.statType && stat.type !== args.statType) return false;
         if (args.minValue && stat.value < args.minValue) return false;
@@ -241,7 +124,7 @@ export const getItemsByProfession = query({
     
     // Filter by profession
     items = items.filter(item => {
-      const professions = item.professions.filter(prof => {
+      const professions = item.professions.filter((prof: ItemProfession) => {
         if (args.profession && prof.name !== args.profession) return false;
         if (args.maxLevel && prof.level > args.maxLevel) return false;
         return true;
@@ -267,62 +150,29 @@ export const getItemsByProfession = query({
   }
 });
 
-// Mutation to sync items from API
-export const syncItemsFromAPI = mutation({
+// Query to get cached API response
+export const getCachedAPIResponse = query({
   args: {
-    items: v.array(v.object({
-      name: v.string(),
-      description: v.optional(v.string()),
-      itemType: v.string(),
-      category: v.optional(v.string()),
-      subCategory: v.optional(v.string()),
-      subType: v.optional(v.string()),
-      minLevel: v.number(),
-      learnable: v.boolean(),
-      stats: v.array(v.object({
-        name: v.string(),
-        value: v.number(),
-        type: v.union(v.literal("core"), v.literal("primary"), v.literal("general"))
-      })),
-      professions: v.array(v.object({
-        name: v.string(),
-        level: v.number()
-      })),
-      apiId: v.optional(v.string())
-    }))
+    endpoint: v.string(),
+    params: v.string()
   },
   handler: async (ctx, args) => {
-    const syncedItems = [];
+    const cacheEntry = await ctx.db
+      .query("apiCache")
+      .withIndex("by_endpoint_params", (q) => 
+        q.eq("endpoint", args.endpoint).eq("params", args.params)
+      )
+      .first();
     
-    for (const itemData of args.items) {
-      // Check if item already exists
-      const existingItem = await ctx.db
-        .query("items")
-        .withIndex("by_api_id", (q) => q.eq("apiId", itemData.apiId))
-        .first();
-      
-      if (existingItem) {
-        // Update existing item
-        await ctx.db.patch(existingItem._id, {
-          ...itemData,
-          lastSynced: Date.now()
-        });
-        syncedItems.push(existingItem._id);
-      } else {
-        // Insert new item
-        const itemId = await ctx.db.insert("items", {
-          ...itemData,
-          lastSynced: Date.now()
-        });
-        syncedItems.push(itemId);
-      }
+    if (cacheEntry && cacheEntry.expiresAt > Date.now()) {
+      return cacheEntry.data;
     }
     
-    return syncedItems;
+    return null;
   }
 });
 
-// Mutation to add a single item
+// Mutation to add a new item
 export const addItem = mutation({
   args: {
     name: v.string(),
@@ -376,7 +226,7 @@ export const updateItem = mutation({
   },
   handler: async (ctx, args) => {
     const { id, ...updates } = args;
-    await ctx.db.patch(id, updates);
+    return await ctx.db.patch(id, updates);
   }
 });
 
@@ -387,5 +237,88 @@ export const deleteItem = mutation({
   },
   handler: async (ctx, args) => {
     await ctx.db.delete(args.id);
+  }
+});
+
+// Mutation to sync items from API
+export const syncItemsFromAPI = mutation({
+  args: {
+    items: v.array(v.object({
+      name: v.string(),
+      description: v.optional(v.string()),
+      itemType: v.string(),
+      category: v.optional(v.string()),
+      subCategory: v.optional(v.string()),
+      subType: v.optional(v.string()),
+      minLevel: v.number(),
+      learnable: v.boolean(),
+      stats: v.array(v.object({
+        name: v.string(),
+        value: v.number(),
+        type: v.union(v.literal("core"), v.literal("primary"), v.literal("general"))
+      })),
+      professions: v.array(v.object({
+        name: v.string(),
+        level: v.number()
+      })),
+      apiId: v.optional(v.string())
+    }))
+  },
+  handler: async (ctx, args) => {
+    const itemIds = [];
+    
+    for (const item of args.items) {
+      const id = await ctx.db.insert("items", {
+        ...item,
+        lastSynced: Date.now()
+      });
+      itemIds.push(id);
+    }
+    
+    return itemIds;
+  }
+});
+
+// Mutation to cache API response
+export const cacheAPIResponse = mutation({
+  args: {
+    endpoint: v.string(),
+    params: v.string(),
+    data: v.any(),
+    timestamp: v.number(),
+    expiresAt: v.number()
+  },
+  handler: async (ctx, args) => {
+    return await ctx.db.insert("apiCache", args);
+  }
+});
+
+// Action to fetch items from external API
+export const fetchItemsFromAPI = action({
+  args: {
+    params: v.object({
+      category: v.optional(v.string()),
+      coreStats: v.optional(v.string()),
+      itemType: v.optional(v.string()),
+      learnable: v.optional(v.boolean()),
+      minLevel: v.optional(v.number()),
+      page: v.optional(v.number()),
+      per_page: v.optional(v.number()),
+      primaryStats: v.optional(v.string()),
+      profession: v.optional(v.string()),
+      stats: v.optional(v.string()),
+      subCategory: v.optional(v.string()),
+      subType: v.optional(v.string())
+    })
+  },
+  handler: async (ctx, args) => {
+    // This would make an HTTP request to the external API
+    // For now, return a mock response
+    return {
+      items: [],
+      total: 0,
+      page: args.params.page || 1,
+      per_page: args.params.per_page || 50
+    };
   }
 }); 

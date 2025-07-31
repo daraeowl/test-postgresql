@@ -1,78 +1,62 @@
 #!/bin/bash
 
-# Game Items API - Self-Hosted Convex Deployment Script
+# Universal deployment script for Convex self-hosted
+echo "🚀 Deploying Convex self-hosted instance..."
 
-echo "🚀 Deploying Game Items API to Self-Hosted Convex..."
-
-# Check if docker-compose is available
-if ! command -v docker-compose &> /dev/null; then
-    echo "❌ docker-compose is not installed. Please install it first."
-    exit 1
+# Check if we're in a CI/CD environment
+if [ -n "$CI" ] || [ -n "$GITHUB_ACTIONS" ]; then
+    echo "📦 CI/CD environment detected"
+    DEPLOY_MODE="ci"
+else
+    echo "💻 Local deployment detected"
+    DEPLOY_MODE="local"
 fi
 
-# Check if .env file exists
-if [ ! -f .env ]; then
-    echo "⚠️  .env file not found. Creating from template..."
-    cat > .env << EOF
-# Convex Self-Hosted Configuration
-INSTANCE_NAME=game-items-api
-INSTANCE_SECRET=$(openssl rand -hex 32)
+# Set default environment variables
+export CONVEX_ADMIN_KEY=${CONVEX_ADMIN_KEY:-"847b4026aee7394a0d0863bbd847c20f28d546067e7c0480bd9d6d0067f3e644"}
+export INSTANCE_SECRET=${INSTANCE_SECRET:-"847b4026aee7394a0d0863bbd847c20f28d546067e7c0480bd9d6d0067f3e644"}
+export CONVEX_CLOUD_ORIGIN="https://convex-dev.jrrojas.dev"
+export CONVEX_SITE_ORIGIN="https://convex-dev.jrrojas.dev"
+export NEXT_PUBLIC_DEPLOYMENT_URL="https://convex-dev.jrrojas.dev"
 
-# Port Configuration
-PORT=3210
-SITE_PROXY_PORT=3211
-DASHBOARD_PORT=6791
-
-# Convex Cloud Configuration
-CONVEX_CLOUD_ORIGIN=http://127.0.0.1:3210
-CONVEX_SITE_ORIGIN=http://127.0.0.1:3211
-NEXT_PUBLIC_DEPLOYMENT_URL=http://127.0.0.1:3210
-
-# Logging Configuration
-RUST_LOG=info
-
-# Optional: Disable beacon for self-hosted
-DISABLE_BEACON=true
-
-# Optional: Redact logs for privacy
-REDACT_LOGS_TO_CLIENT=false
-
-# Optional: Timeout configuration
-ACTIONS_USER_TIMEOUT_SECS=300
-
-# Game Items API Configuration
-GAME_ITEMS_API_URL=https://api.ashescodex.com/items
-API_CACHE_DURATION=300000
-EOF
-    echo "✅ Created .env file with default configuration"
-fi
-
-# Start the Convex services
-echo "📦 Starting Convex services..."
-docker-compose up -d
+# Build and start services
+echo "📦 Building and starting services..."
+docker-compose up --build -d
 
 # Wait for services to be healthy
 echo "⏳ Waiting for services to be ready..."
-sleep 10
+sleep 15
 
-# Check if services are running
-if docker-compose ps | grep -q "Up"; then
-    echo "✅ Convex services are running!"
-    echo ""
-    echo "🌐 Dashboard: http://localhost:6791"
-    echo "🔧 Backend: http://localhost:3210"
-    echo ""
-    echo "📋 Next steps:"
-    echo "1. Open http://localhost:6791 in your browser"
-    echo "2. Navigate to the 'Functions' tab"
-    echo "3. Upload your convex/ folder"
-    echo "4. Test the game items API integration"
+# Check service status
+echo "🔍 Checking service status..."
+docker-compose ps
+
+# Test endpoints
+echo "🧪 Testing endpoints..."
+if curl -f http://localhost:3210/version > /dev/null 2>&1; then
+    echo "✅ Backend is healthy"
 else
-    echo "❌ Failed to start Convex services"
-    docker-compose logs
+    echo "❌ Backend health check failed"
+    exit 1
+fi
+
+if curl -f http://localhost:6791 > /dev/null 2>&1; then
+    echo "✅ Dashboard is healthy"
+else
+    echo "❌ Dashboard health check failed"
     exit 1
 fi
 
 echo ""
-echo "🎮 Game Items API Integration Ready!"
-echo "You can now use the Convex functions to interact with the game items API." 
+echo "🎉 Deployment successful!"
+echo ""
+echo "🌐 Your services are running:"
+echo "   - Backend: http://localhost:3210"
+echo "   - Dashboard: http://localhost:6791"
+echo ""
+echo "🔑 Admin Key: $CONVEX_ADMIN_KEY"
+echo ""
+echo "📋 Useful commands:"
+echo "   - View logs: docker-compose logs -f"
+echo "   - Stop services: docker-compose down"
+echo "   - Restart: docker-compose restart" 

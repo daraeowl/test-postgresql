@@ -1,4 +1,4 @@
-import { defineSchema, defineTable } from "convex/schema";
+import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 
 // Define interfaces for type safety
@@ -16,6 +16,7 @@ export interface GameItem {
   stats: ItemStat[];
   professions: ItemProfession[];
   apiId?: string; // Reference to external API ID
+  lastSynced?: number; // Timestamp of last API sync
 }
 
 export interface ItemStat {

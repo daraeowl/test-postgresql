@@ -21,7 +21,7 @@ services:
       - REDACT_LOGS_TO_CLIENT=false
       - ACTIONS_USER_TIMEOUT_SECS=300
     healthcheck:
-      test: curl -f http://localhost:3210/version
+      test: curl -f https://convex-dev.jrrojas.dev/version
       interval: 5s
       start_period: 5s
       timeout: 3s

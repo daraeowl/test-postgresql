@@ -1,3 +1,7 @@
-NEXT_PUBLIC_DEPLOYMENT_URL=http://guildmanager-prod-convex-03a7b4-148-113-206-108.traefik.me:3210
-CONVEX_CLOUD_ORIGIN=http://guildmanager-prod-convex-03a7b4-148-113-206-108.traefik.me:3210
-CONVEX_SITE_ORIGIN=http://guildmanager-prod-convex-617c44-148-113-206-108.traefik.me:3211 
+# Production deployment URLs
+NEXT_PUBLIC_DEPLOYMENT_URL=https://convex-dev.jrrojas.dev
+CONVEX_CLOUD_ORIGIN=https://convex-dev.jrrojas.dev
+CONVEX_SITE_ORIGIN=https://convex-dev.jrrojas.dev
+
+# Required for production deployment
+INSTANCE_SECRET=847b4026aee7394a0d0863bbd847c20f28d546067e7c0480bd9d6d0067f3e644 
